@@ -1,0 +1,283 @@
+---
+title: "SCN_fluopyram_greenhouse"
+author: "Mitch Roth"
+date: "12/6/2017"
+output: html_document
+---
+
+```{r Import data}
+master <- read.csv2("SCN_Greenhouse_Test.csv", header = TRUE, sep = ",")
+colnames(master)
+master$Entry.Treatment
+master$Exp_rep <- as.factor(master$Exp_rep)
+
+master.qpcr <- read.csv2("Output\ Bayer\ SCN\ qPCR.csv", header = TRUE, sep = ",")
+colnames(master.qpcr)
+
+master.qpcr.SDS <- read.csv2("Output\ Bayer\ SDS\ qPCR.csv", header = TRUE, sep = ",")
+colnames(master.qpcr.SDS)
+```
+
+```{r stats}
+#Determine if treatment had an overall effect on SCN cysts and females
+SCN.c.t <- t.test(SCN.Cysts ~ Entry.Treatment, data = master)
+SCN.f.t <- t.test(SCN.Females ~ Entry.Treatment, data = master)
+SCN.c.t  #Overall, no significant effect treatment on SCN cysts (P = 0.7169)
+SCN.f.t  #Overall, treatment DID HAVE significant effect on SCN females!
+#Mean females in base = 1105
+#Mean females in base + ILeVO = 297
+# P = 0.00015
+
+#Determine if variety had an effect on SCN cysts and females
+var.c.t <- t.test(SCN.Cysts ~ Soybean.Variety, data = master)
+var.f.t <- t.test(SCN.Females ~ Soybean.Variety, data = master)
+var.c.t #Overall, no significant effect of variety on SCN cysts (P = 0.7191)
+var.f.t #Overall, no significant effect of variety on SCN females, though it's close (P = 0.05682)
+
+VarA <- master[master$Soybean.Variety == "A",]
+VarB <- master[master$Soybean.Variety == "B",]
+colnames(VarA)
+VarA.c.t <- t.test(SCN.Cysts ~ Entry.Treatment, data = VarA)
+VarB.c.t <- t.test(SCN.Cysts ~ Entry.Treatment, data = VarB)
+VarA.c.t #No effect on SCN cysts in Var A (P = 0.7923)
+VarB.c.t #No effect on SCN cysts in Var A (P = 0.4904)
+VarA.f.t <- t.test(SCN.Females ~ Entry.Treatment, data = VarA)
+VarB.f.t <- t.test(SCN.Females ~ Entry.Treatment, data = VarB)
+VarA.f.t #For VarA, treatment DID HAVE significant effect on SCN females!
+VarB.f.t #For VarB, treatment DID HAVE significant effect on SCN females!
+
+
+
+VarA.qPCR <- master.qpcr[master.qpcr$Var == "A",]
+VarB.qPCR <- master.qpcr[master.qpcr$Var == "B",]
+for (i in 4:6){
+  VarA.qPCR[,i] <- as.numeric(as.character(VarA.qPCR[,i]))
+  VarB.qPCR[,i] <- as.numeric(as.character(VarB.qPCR[,i]))
+}
+colnames(VarA.qPCR)
+#t-test / ANOVAs
+#VarA.qPCR.t <- t.test(SCN.Females ~ as.factor(Entry.Treatment), data = VarA.qPCR)
+#VarB.qPCR.t <- t.test(SCN.Females ~ as.factor(Entry.Treatment), data = VarB.qPCR)
+
+VarA.qPCR.aov <- aov(Quantity.Mean ~ as.factor(Trt), data = VarA.qPCR)
+VarB.qPCR.aov <- aov(Quantity.Mean ~ as.factor(Trt), data = VarB.qPCR)
+summary(VarA.qPCR.aov)
+summary(VarB.qPCR.aov)
+TukeyHSD(VarA.qPCR.aov)
+TukeyHSD(VarB.qPCR.aov)
+```
+
+```{r plots}
+#NOTE: Treatments are:
+# 1 = base
+# 2 = base + poncho/votivo
+# 3 = base + poncho/votivo + ilevo
+# 4 = base + ilevo
+# 5 = base + test compounds 1 and 2
+# 6 = base
+#NOTE: treatment 1 roots were rubbed off, and SCN collected & counted by Fred
+#NOTE: treatment 6 roots were NOT rubbed off, and ONLY used for qPCR
+#NOTE: Since treatment 4 did not have a "no rubbed" set, compare trt 1 and 4 for both
+library(plyr)
+
+SCN.df <- master
+qPCR.df <- master.qpcr
+qPCR.SDS.df <- master.qpcr.SDS
+colnames(SCN.df) <- c("Treatment",
+                      "Variety",
+                      "Rep",
+                      "SCN.Females",
+                      "SCN.Cysts")
+colnames(qPCR.df)<- c("Variety",
+                      "Treatment",
+                      "Sample",
+                      "SCN.Ct",
+                      "Quantity",
+                      "Quantity.SD")
+colnames(qPCR.SDS.df)<- c("Variety",
+                      "Treatment",
+                      "Rep",
+                      "Fv.Ct",
+                      "Soy.Ct",
+                      "Delta")
+SCN.df <- SCN.df[SCN.df$Treatment!="2",]
+SCN.df <- SCN.df[SCN.df$Treatment!="3",]
+SCN.df <- SCN.df[SCN.df$Treatment!="5",]
+qPCR.df <- qPCR.df[qPCR.df$Treatment!="2",]
+qPCR.df <- qPCR.df[qPCR.df$Treatment!="3",]
+qPCR.df <- qPCR.df[qPCR.df$Treatment!="5",]
+qPCR.df <- qPCR.df[qPCR.df$Treatment!="6",]
+qPCR.SDS.df <- qPCR.SDS.df[qPCR.SDS.df$Treatment!="2",]
+qPCR.SDS.df <- qPCR.SDS.df[qPCR.SDS.df$Treatment!="3",]
+qPCR.SDS.df <- qPCR.SDS.df[qPCR.SDS.df$Treatment!="5",]
+qPCR.SDS.df <- qPCR.SDS.df[qPCR.SDS.df$Treatment!="6",]
+SCN.df$Treatment <- as.factor(SCN.df$Treatment)
+qPCR.df$Treatment <- as.factor(qPCR.df$Treatment)
+qPCR.SDS.df$Treatment <- as.factor(qPCR.SDS.df$Treatment)
+SCN.df$Treatment <- revalue(SCN.df$Treatment, c("1"="base",
+                                                "4"="ILeVO"))
+qPCR.df$Treatment <- revalue(qPCR.df$Treatment, c("1"="base",
+                                                  "4"="ILeVO"))
+qPCR.SDS.df$Treatment <- revalue(qPCR.SDS.df$Treatment, c("1"="base",
+                                                          "4"="ILeVO"))
+for(i in seq_along(SCN.df$SCN.Females)){
+  SCN.df$SCN.F.Cyst[i] <- sum(SCN.df$SCN.Females[i], 
+                              SCN.df$SCN.Cysts[i])
+  print(SCN.df$SCN.F.Cyst[i])
+}
+SCN.df$SCN.F.Cyst
+library(ggplot2)
+library(ggpubr)
+p1 <- ggplot(data = SCN.df, aes(x = Treatment,
+                                y = SCN.F.Cyst, 
+                                fill = Treatment)) +
+    stat_summary(fun.y = mean, position="identity", geom = "bar") +
+    stat_summary(fun.data = mean_se, 
+                 position = "identity", 
+                 geom = "errorbar",
+                 width = 0.5) +
+    stat_compare_means(size = 5, 
+                       label = "p.signif", 
+                       method = "t.test",
+                       label.y.npc = 0.85) +
+    facet_grid(~Variety, switch="x") +
+    xlab("Variety") + ylab("SCN Females + Cysts") +
+    ggtitle("Response to ILeVO in Greenhouse") +
+    theme_bw() +
+    theme(legend.title=element_text(size=12), legend.text=element_text(size=20),
+          legend.position="bottom", strip.text.x = element_text(size=18),
+          axis.text.x=element_blank(), axis.text.y=element_text(size=20),
+          axis.title.x=element_text(size=28, face="bold"), 
+          axis.title.y=element_text(size=28, face="bold"), 
+          axis.ticks.x=element_blank(),
+          panel.background=element_blank(), panel.grid.minor=element_blank(),
+          panel.grid.major=element_blank()) +
+  scale_fill_grey()
+p1
+
+
+
+qPCR.df$Quantity <- as.numeric(as.character(qPCR.df$Quantity))
+p4 <- ggplot(data = qPCR.df, aes(x = Treatment, 
+                                       y = Quantity, 
+                                       fill = Treatment)) +
+    stat_summary(fun.y = mean, position="identity", geom = "bar") +
+    stat_summary(fun.data = mean_se, position = "identity", geom = "errorbar",
+               width = 0.5) +
+    stat_compare_means(size = 5, label = "p.signif", method = "t.test",
+                       label.y.npc = 0.75) +
+    facet_grid(~Variety, switch="x") +
+    xlab("Variety") + ylab("SCN DNA Quantity (pg)") +
+    ggtitle("Response to ILeVO in Greenhouse") +
+    theme_bw() +
+    theme(legend.title=element_text(size=12), legend.text=element_text(size=20),
+          legend.position="bottom", strip.text.x = element_text(size=18),
+          axis.text.x=element_blank(), axis.text.y=element_text(size=20),
+          axis.title.x=element_text(size=28, face="bold"), 
+          axis.title.y=element_text(size=28, face="bold"), 
+          axis.ticks.x=element_blank(),
+          panel.background=element_blank(), panel.grid.minor=element_blank(),
+          panel.grid.major=element_blank()) +
+  scale_fill_grey()
+p4
+
+qPCR.SDS.df$Delta <- as.numeric(as.character(qPCR.SDS.df$Delta))
+qPCR.SDS.df$Fv.Ct <- as.numeric(as.character(qPCR.SDS.df$Fv.Ct))
+qPCR.SDS.df$Soy.Ct <- as.numeric(as.character(qPCR.SDS.df$Soy.Ct))
+qPCR.SDS.df$Delta <- qPCR.SDS.df$Delta + 3.32
+p5 <- ggplot(data = qPCR.SDS.df, aes(x = Treatment, 
+                                       y = Delta, 
+                                       fill = Treatment)) +
+    stat_summary(fun.y = mean, position="identity", geom = "bar") +
+    stat_summary(fun.data = mean_se, position = "identity", geom = "errorbar",
+               width = 0.5) +
+    stat_compare_means(size = 5, label = "p.signif", method = "t.test",
+                       label.y.npc = 0.65) +
+    facet_grid(~Variety, switch="x") +
+    xlab("Variety") + ylab("F. virguliforme quantity (ΔCt)") +
+    ggtitle("Response to ILeVO in Greenhouse") +
+    theme_bw() +
+    theme(legend.title=element_text(size=12), legend.text=element_text(size=20),
+          legend.position="bottom", strip.text.x = element_text(size=18),
+          axis.text.x=element_blank(), axis.text.y=element_text(size=20),
+          axis.title.x=element_text(size=28, face="bold"), 
+          axis.title.y=element_text(size=28, face="bold"), 
+          axis.ticks.x=element_blank(),
+          panel.background=element_blank(), panel.grid.minor=element_blank(),
+          panel.grid.major=element_blank()) +
+  scale_fill_grey()
+
+p5
+
+library(gridExtra)
+grid.arrange(p1,p4,p5,ncol=3)
+```
+
+```{r}
+syn.master <- read.csv2("SDS_and_SCN_qPCR.csv", header = TRUE, sep = ",")
+colnames(syn.master)
+#Note, SCN_quant is already in pg, so ignore SCN_quant2
+syn.df <- syn.master
+syn.df$Treatment <- as.factor(syn.df$Treatment)
+#convert quantities from factor to numeric, change Fv to picograms (fg / 1000)
+syn.df$Fv_quant <- as.numeric(as.character(syn.df$Fv_quant))/1000
+syn.df$SCN_quant <- as.numeric(as.character(syn.df$SCN_quant))
+syn.df <- syn.df[syn.df$Treatment!="2",]
+syn.df <- syn.df[syn.df$Treatment!="3",]
+syn.df <- syn.df[syn.df$Treatment!="5",]
+syn.df <- syn.df[syn.df$Treatment!="6",]
+#Remove outlier(s)
+syn.df <- syn.df[syn.df$Fv_quant < 15,]
+row.names(syn.df) <- 1:nrow(syn.df)
+library(ggplot2)
+library(ggpubr)
+p6 <- ggplot(data = syn.df, aes(x = Treatment, 
+                                       y = Fv_quant, 
+                                       fill = Treatment)) +
+    stat_summary(fun.y = mean, position="identity", geom = "bar") +
+    stat_summary(fun.data = mean_se, position = "identity", geom = "errorbar",
+               width = 0.5) +
+    stat_compare_means(size = 5, label = "p.signif", method = "t.test",
+                       label.y.npc = 0.75) +
+    facet_grid(~Variety, switch="x") +
+    xlab("Variety") + ylab("Fv quantity (pg)") +
+    ggtitle("Response to ILeVO in Greenhouse") +
+    theme_bw() +
+    theme(legend.title=element_text(size=12), legend.text=element_text(size=20),
+          legend.position="bottom", strip.text.x = element_text(size=18),
+          axis.text.x=element_blank(), axis.text.y=element_text(size=20),
+          axis.title.x=element_text(size=28, face="bold"), 
+          axis.title.y=element_text(size=28, face="bold"), 
+          axis.ticks.x=element_blank(),
+          panel.background=element_blank(), panel.grid.minor=element_blank(),
+          panel.grid.major=element_blank()) +
+  scale_fill_grey()
+p6
+
+library(gridExtra)
+grid.arrange(p1,p4,p6,ncol=3)
+
+p8 <- ggplot(data = syn.df, aes(x = Fv_quant, y = SCN_quant,
+                                shape = Treatment),
+             colour = Variety) +
+  geom_point(shape = c(24, 21)[as.factor(syn.df$Variety)],
+             colour = "black",
+             aes(fill = syn.df$Treatment),
+             size = 10) +  
+  stat_ellipse(level = 0.95, aes(linetype = as.factor(syn.df$Treatment))) +
+  #geom_text(label=syn.df$Variety,
+  #          size = 5,
+  #          colour = "white",
+  #          fontface="bold") +
+      ylab("SCN DNA Quantity (pg)") + xlab("Fv DNA Quantity (pg)") +
+  theme_bw() +
+  theme(legend.title=element_blank(),
+        legend.text=element_text(size=28), legend.position="",
+        axis.text.x=element_text(size=28), strip.text.x = element_text(size=18),
+        axis.title.x=element_text(size=28, face="bold"),
+        axis.title.y=element_text(size=28, face="bold"),
+        axis.text.y=element_text(size=28)) +
+  scale_fill_grey() 
+p8
+```
+
