@@ -31,25 +31,27 @@ colnames(master2)
 
 #determine if yield, SCN, and SDS are significantly affected by variety and treatment
 lm.yield <- lm(Yield ~ Var * Trt, data = master2)
-lm.SCN <- lm(Eggs_Jvs2 ~ Var * Trt, data = master2)
+lm.SCN <- lm(Eggs_Jvs ~ Var * Trt, data = master2)
+lm.SCN2 <- lm(Eggs_Jvs2 ~ Var * Trt, data = master2)
 lm.SDS <- lm(DIX_26Aug ~ Var * Trt, data = master2)
 car::Anova(lm.yield)
 car::Anova(lm.SCN)
+car::Anova(lm.SCN2)
 car::Anova(lm.SDS)
 #Cool, it looks like "Trt", or ILeVO, had a significant effect on Yield and on end-of-season SCN
 
 # Check the effect of year on each variable of interest
 master2$Year <- as.factor(master2$Year)
-lm.yield <- lm(Yield ~ Year, data = master2)
-lm.SCN <- lm(Eggs_Jvs ~ Year, data = master2)
-lm.SCN2 <- lm(Eggs_Jvs2 ~ Year, data = master2)
-lm.Rf <- lm((Eggs_Jvs/Eggs_Jvs2) ~ Year, data = master2)
-lm.SDS <- lm(DIX_26Aug ~ Year, data = master2)
-car::Anova(lm.yield)
-car::Anova(lm.SCN)
-car::Anova(lm.SCN2)
-car::Anova(lm.Rf)
-car::Anova(lm.SDS)
+lm.yield.year <- lm(Yield ~ Year, data = master2)
+lm.SCN.year <- lm(Eggs_Jvs ~ Year, data = master2)
+lm.SCN2.year <- lm(Eggs_Jvs2 ~ Year, data = master2)
+lm.Rf.year <- lm((Eggs_Jvs/Eggs_Jvs2) ~ Year, data = master2)
+lm.SDS.year <- lm(DIX_26Aug ~ Year, data = master2)
+car::Anova(lm.yield.year)
+car::Anova(lm.SCN.year)
+car::Anova(lm.SCN2.year)
+car::Anova(lm.Rf.year)
+car::Anova(lm.SDS.year)
 
 #So, since year has a significant effect on everything, break it out by year
 #Plus, since variety was coded (hidden from us), I randomly assigned variety numbers
@@ -82,8 +84,8 @@ anova(lm9) #Only Variety was significant on end of season SDS
 
 
 #Since lm.SCN indicated that ILeVO had a significant effect on end of season SCN, let's runa Tukey test to see if ILeVO reduced SCN or increased it 
-lm.SCN2 <- emmeans(lm.SCN, ~Trt) # estimate lsmeans of ILeVO
-lm.SCN.results <- emmeans::cld(lm.SCN2, 
+lm.SCN.em <- emmeans(lm.SCN2, ~Trt) # estimate lsmeans of ILeVO
+lm.SCN.results <- multcomp::cld(lm.SCN.em, 
                             alpha = 0.05, 
                             adjust = "tuk", 
                             Letters = letters, 
@@ -93,8 +95,8 @@ lm.SCN.results
 #Sure enough, ILeVO treatment led to a reduction in end of season SCN, on average
 
 #Let's see if there were any specific effects within varieties.
-lm.SCN3 <- emmeans(lm.SCN, ~Trt|Var) # estimate lsmeans of ILeVO within Variety
-lm.SCN.results2 <- emmeans::cld(lm.SCN3, 
+lm.SCN.em2 <- emmeans(lm.SCN2, ~Trt|Var) # estimate lsmeans of ILeVO within Variety
+lm.SCN.results2 <- multcomp::cld(lm.SCN.em2, 
                             alpha = 0.05, 
                             adjust = "tuk", 
                             Letters = letters, 
@@ -102,45 +104,59 @@ lm.SCN.results2 <- emmeans::cld(lm.SCN3,
                             details = TRUE)
 lm.SCN.results2
 #ILeVO did not have significant effects within variety, but each variety was only tested 1 year.
+#At least, each variety was only tested 1 year that we're aware of. Varieties were coded.
 
+
+#Get tukey results for yield and SDS too
 lm.yield2 <- emmeans(lm.yield, ~Trt) # estimate lsmeans of ILeVO within Variety
-lm.yield.results2 <- emmeans::cld(lm.yield2, 
+lm.yield.results2 <- multcomp::cld(lm.yield2, 
+                            alpha = 0.05, 
+                            adjust = "tuk", 
+                            Letters = letters, 
+                            reversed = TRUE, 
+                            details = TRUE)
+lm.SDS.em <- emmeans(lm.SDS, ~Trt) # estimate lsmeans of ILeVO within Variety
+lm.SDS.results <- multcomp::cld(lm.SDS.em, 
                             alpha = 0.05, 
                             adjust = "tuk", 
                             Letters = letters, 
                             reversed = TRUE, 
                             details = TRUE)
 lm.yield.results2
+lm.SDS.results
+#Overally, no significant effects of fluopyram (ILeVO) on yield or SDS in this study.
 
-#Get tukey results by variety for yield, eggs_jvs2, and SDS
-lm.yield.var <- emmeans(lm.yield, ~Trt) # estimate lsmeans of ILeVO within Variety
-lm.yield.var.results <- emmeans::cld(lm.yield.var, 
+
+#Check variety effects too
+lm.yield.var.em <- emmeans(lm.yield, ~Var) # estimate lsmeans of ILeVO within Variety
+lm.yield.var.results <- multcomp::cld(lm.yield.var.em, 
+                            alpha = 0.05, 
+                            adjust = "tuk", 
+                            Letters = letters, 
+                            reversed = TRUE, 
+                            details = TRUE)
+
+lm.SCN.var.em <- emmeans(lm.SCN2, ~Var) # estimate lsmeans of ILeVO within Variety
+lm.SCN.var.results <- multcomp::cld(lm.SCN.var.em, 
+                            alpha = 0.05, 
+                            adjust = "tuk", 
+                            Letters = letters, 
+                            reversed = TRUE, 
+                            details = TRUE)
+
+lm.SDS.var.em <- emmeans(lm.SDS, ~Var) # estimate lsmeans of ILeVO within Variety
+lm.SDS.var.results <- multcomp::cld(lm.SDS.var.em, 
                             alpha = 0.05, 
                             adjust = "tuk", 
                             Letters = letters, 
                             reversed = TRUE, 
                             details = TRUE)
 lm.yield.var.results
-
-lm.SCN.var <- emmeans(lm.SCN, ~Var) # estimate lsmeans of ILeVO within Variety
-lm.SCN.var.results <- emmeans::cld(lm.SCN.var, 
-                            alpha = 0.05, 
-                            adjust = "tuk", 
-                            Letters = letters, 
-                            reversed = TRUE, 
-                            details = TRUE)
 lm.SCN.var.results
-
-lm.SDS.var <- emmeans(lm.SDS, ~Var) # estimate lsmeans of ILeVO within Variety
-lm.SDS.var.results <- emmeans::cld(lm.SDS.var, 
-                            alpha = 0.05, 
-                            adjust = "tuk", 
-                            Letters = letters, 
-                            reversed = TRUE, 
-                            details = TRUE)
 lm.SDS.var.results
 
 ```
+
 ```{r stats Eggs_Jvs2 vs PfPi_SCN}
 library(lme4)
 library(car)
@@ -177,7 +193,7 @@ anova(lm9)
 
 # Run a Tukey test to see if the sig difference means ILeVO sig reduced or sig increased SCN 
 lm.EJ2_tukey <- emmeans(lm.EJ2, ~Trt) # estimate lsmeans of ILeVO
-lm.EJ2_tukey.results <- emmeans::cld(lm.EJ2_tukey, 
+lm.EJ2_tukey.results <- multcomp::cld(lm.EJ2_tukey, 
                             alpha = 0.05, 
                             adjust = "tuk", 
                             Letters = letters, 
@@ -190,7 +206,7 @@ lm.EJ2_tukey.results
 #Interpretation: ILeVO reduced eggs_jvs2
 
 lm.PfPi_tukey <- emmeans(lm.PfPi, ~Trt) # estimate lsmeans of ILeVO
-lm.PfPi_tukey.results <- emmeans::cld(lm.PfPi_tukey, 
+lm.PfPi_tukey.results <- multcomp::cld(lm.PfPi_tukey, 
                             alpha = 0.05, 
                             adjust = "tuk", 
                             Letters = letters, 
@@ -202,6 +218,7 @@ lm.PfPi_tukey.results
 #p value = 0.5264
 #Interpretation: ILeVO had no effect on PfPi
 ```
+
 Plot Eggs_Jvs2 for each variety, treated and non-treated
 ```{r Bar Charts variety ~ treatment}
 library(ggplot2)
@@ -357,7 +374,7 @@ yield.plot.diff.SCN <- function(variable){
                 axis.text.y=element_text(size=20))
   p
 }
-plot.diff <- function(variable){
+plot.diff <- function(variable, y1, y2, y3, y4){
   z <- which(colnames(master)==as.character(variable))
   diff.df <- cbind.data.frame(as.factor(master$SCN_Res),
                               as.factor(master$SDS_Res),
@@ -418,22 +435,22 @@ plot.diff <- function(variable){
     geom_errorbar(aes(ymin = response.df[,5] - SD, 
                       ymax = response.df[,5] + SD, width=.25)) +
     geom_text(aes(x = plot.order,
-                  y = -4750,
+                  y = y1,
                   label=variety),
               size = 3,
               colour = "black") +
     geom_text(aes(x = plot.order,
-                  y = -5000,
+                  y = y2,
                   label=year),
               size = 3,
               colour = "black") +
     geom_text(aes(x = plot.order,
-                  y = -5250,
+                  y = y3,
                   label=SCN_Res),
               size = 3,
               colour = "black") +
     geom_text(aes(x = plot.order,
-                  y = -5500,
+                  y = y4,
                   label=SDS_Res),
               size = 3,
               colour = "black") +
@@ -453,15 +470,15 @@ plot.diff <- function(variable){
   p
 }
 
-plot.diff("Eggs_Jvs2")
+plot.diff("Eggs_Jvs2", -4750, -5000, -5250, -5500)
 #Change "y" in the geom_text snippets above for the rest of these
-plot.diff("Cysts2")
-plot.diff("Pi_fecundity")
-plot.diff("Pf_fecundity")
-plot.diff("PfPi_SCN")
+plot.diff("Cysts2", -50, -60, -70, -80)
+plot.diff("Pi_fecundity", -60, -70, -80, -90)
+plot.diff("Pf_fecundity", -60, -70, -80, -90)
+plot.diff("PfPi_SCN", -15, -18, -21, -24)
 ```
 
-Some interesting code here with boxplots, but not used for poster
+Combined SCN and SDS responses
 ```{r Scatter plots}
 plot.response <- function(variable1, variable2, variable3){
   z <- which(colnames(master)==as.character(variable1))
@@ -612,58 +629,8 @@ p
 }
 
 colnames(master)
-plot(log(Eggs_Jvs2) ~ DIX_26Aug, data = master2)
-abline(lm(log(Eggs_Jvs2) ~ DIX_26Aug, data = master2))
-summary(lm(log(Eggs_Jvs2) ~ DIX_26Aug, data = master2))
-plot.response('Eggs_Jvs2', 'DIX_26Aug','Yield')
-plot.response('Yield', 'Eggs_Jvs2')
-plot.response('Yield', 'DIX_26Aug')
+plot.response('Eggs_Jvs2', 'DIX_26Aug', 'Yield')
+#plot.response('Yield', 'Eggs_Jvs2')
+#plot.response('Yield', 'DIX_26Aug')
 
-```
-
-##3D Plots
-```{r 3D plots}
-#color.pal <- c("#FFFFFF","#006600")
-#c("#006600","#FFFFFF")
-#color.func <- colorRampPalette(color.pal)
-master2
-colnames(master2)
-df.3d <- cbind.data.frame(master2$Year,
-                          master2$Trt,
-                          master2$SCN_Res,
-                          master2$Eggs_Jvs2,
-                          master2$DIX_26Aug,
-                          master2$Yield)
-
-colnames(df.3d) <- c("Year","Trt","SCN_Res","SCN","SDS","Yield")
-df.3d$Year <- as.factor(df.3d$Year)
-df.3d$Trt <- droplevels(df.3d$Trt)
-#install.packages("plot3D")
-library(plot3D)
-length(df.3d$SCN)
-fit <- lm(df.3d$Yield ~ df.3d$SCN + df.3d$SDS)
-grid.lines = 15
-x.pred <- seq(min(df.3d$SCN), max(df.3d$SCN), length.out = grid.lines)
-y.pred <- seq(min(df.3d$SDS), max(df.3d$SDS), length.out = grid.lines)
-xy <- expand.grid( x = x.pred, y = y.pred)
-z.pred <- matrix(predict(fit, newdata = xy), 
-                 nrow = grid.lines, ncol = grid.lines)
-fitpoints <- predict(fit)
-
-#3d plots are colored by 3rd (z) variable (R5DX)
-#df.3d <- df.3d[order(df.3d$Trt),] 
-scatter3D(df.3d$SCN, df.3d$SDS, df.3d$Yield, 
-          type = "h",
-          bty = "b2",
-          pch = c(21, 24)[as.numeric(df.3d$Trt)], cex = 2, 
-          col="black",
-          bg = c("#F0E442", 
-                 "#0072B2", 
-                 "#D55E00", 
-                 "#CC79A7")[df.3d$SCN_Res],
-          theta = 45, phi = 15,
-          main = "SCN-SDS-Yield Relationship",
-          xlab = 'SCN eggs + J2s', 
-          ylab = 'SDS Disease Index', 
-          zlab = 'Yield')
 ```
