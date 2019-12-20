@@ -7,13 +7,19 @@ output: html_document
 
 Import the data
 ```{r Import data}
+library(lattice)
 master <- read.csv2("Showcase_Data_Master.csv", header = TRUE, sep = ",")
 colnames(master)
+#Note: PfPi_SCN is final eggs_juvs / initial eggs_jvs
+#So, PfPi_SCN is Rf
 master$PfPi_fecundity <- as.numeric(as.character(master$PfPi_fecundity))
-master$stand_3June <- as.numeric(as.character(master$stand_3June))
 master$DIX_26Aug <- as.numeric(as.character(master$DIX_26Aug))
-master$Yield <- as.numeric(as.character(master$Yield))
+master$Yield_kg_ha <- as.numeric(as.character(master$Yield_kg_ha))
 master$PfPi_SCN <- as.numeric(as.character(master$PfPi_SCN))
+#histogram(master$PfPi_SCN)
+#histogram(log(master$PfPi_SCN))
+#^suggests I should log transform PfPi_SCN to normalize distribution 
+master$PfPi_SCN_log <- log(master$PfPi_SCN)
 master$Var <- as.factor(master$Var)
 #class(master$Trt)
 ```
@@ -30,22 +36,25 @@ master2 <- master[master$Trt!="Low ILeVO",]
 colnames(master2)
 
 #determine if yield, SCN, and SDS are significantly affected by variety and treatment
-lm.yield <- lm(Yield ~ Var * Trt, data = master2)
+#This data will be compiled into Table 1
+lm.yield <- lm(Yield_kg_ha ~ Var * Trt, data = master2)
 lm.SCN <- lm(Eggs_Jvs ~ Var * Trt, data = master2)
 lm.SCN2 <- lm(Eggs_Jvs2 ~ Var * Trt, data = master2)
+lm.Rf <- lm(PfPi_SCN_log ~ Var * Trt, data = master2)
 lm.SDS <- lm(DIX_26Aug ~ Var * Trt, data = master2)
 car::Anova(lm.yield)
 car::Anova(lm.SCN)
 car::Anova(lm.SCN2)
+car::Anova(lm.Rf)
 car::Anova(lm.SDS)
 #Cool, it looks like "Trt", or ILeVO, had a significant effect on Yield and on end-of-season SCN
 
 # Check the effect of year on each variable of interest
 master2$Year <- as.factor(master2$Year)
-lm.yield.year <- lm(Yield ~ Year, data = master2)
+lm.yield.year <- lm(Yield_kg_ha ~ Year, data = master2)
 lm.SCN.year <- lm(Eggs_Jvs ~ Year, data = master2)
 lm.SCN2.year <- lm(Eggs_Jvs2 ~ Year, data = master2)
-lm.Rf.year <- lm((Eggs_Jvs/Eggs_Jvs2) ~ Year, data = master2)
+lm.Rf.year <- lm(PfPi_SCN ~ Year, data = master2)
 lm.SDS.year <- lm(DIX_26Aug ~ Year, data = master2)
 car::Anova(lm.yield.year)
 car::Anova(lm.SCN.year)
@@ -63,9 +72,9 @@ master2.2014 <- master2[master2$Year=="2014",]
 master2.2015 <- master2[master2$Year=="2015",]
 master2.2016 <- master2[master2$Year=="2016",]
 
-lm1 <- lm(Yield ~ Var * Trt, data = master2.2014)
-lm2 <- lm(Yield ~ Var * Trt, data = master2.2015)
-lm3 <- lm(Yield ~ Var * Trt, data = master2.2016)
+lm1 <- lm(Yield_kg_ha ~ Var * Trt, data = master2.2014)
+lm2 <- lm(Yield_kg_ha ~ Var * Trt, data = master2.2015)
+lm3 <- lm(Yield_kg_ha ~ Var * Trt, data = master2.2016)
 anova(lm1) #Only Variety was significant on Yield in 2014
 anova(lm2) #Variety and ILeVO was significant on Yield in 2015
 anova(lm3) #Only Variety was significant on Yield in 2014
@@ -75,15 +84,22 @@ lm6 <- lm(Eggs_Jvs2 ~ Var * Trt, data = master2.2016)
 anova(lm4) #Variety was significant on end of season SCN, ILeVO almost was, in 2014
 anova(lm5) #Variety was significant on end of season SCN, ILeVO almost was, in 2015
 anova(lm6) #Variety was significant on end of season SCN in 2016
-lm7 <- lm(DIX_26Aug ~ Var * Trt, data = master2.2014)
-lm8 <- lm(DIX_26Aug ~ Var * Trt, data = master2.2015)
-lm9 <- lm(DIX_26Aug ~ Var * Trt, data = master2.2016)
-anova(lm7) #Only Variety was significant on end of season SDS
-anova(lm8) #Only Variety was significant on end of season SDS
-anova(lm9) #Only Variety was significant on end of season SDS
+lm7 <- lm(PfPi_SCN_log ~ Var * Trt, data = master2.2014)
+lm8 <- lm(PfPi_SCN_log ~ Var * Trt, data = master2.2015)
+lm9 <- lm(PfPi_SCN_log ~ Var * Trt, data = master2.2016)
+anova(lm7) #Only Variety was significant on Rf
+anova(lm8) #Only Variety was significant on Rf
+anova(lm9) #Variety AND Treatment was significant on Rf in 2016
+lm10 <- lm(DIX_26Aug ~ Var * Trt, data = master2.2014)
+lm11 <- lm(DIX_26Aug ~ Var * Trt, data = master2.2015)
+lm12 <- lm(DIX_26Aug ~ Var * Trt, data = master2.2016)
+anova(lm10) #Only Variety was significant on end of season SDS
+anova(lm11) #Only Variety was significant on end of season SDS
+anova(lm12) #Only Variety was significant on end of season SDS
 
 
-#Since lm.SCN indicated that ILeVO had a significant effect on end of season SCN, let's runa Tukey test to see if ILeVO reduced SCN or increased it 
+
+#Since lm.SCN2 indicated that ILeVO had a significant effect on end of season SCN, let's run a Tukey test to see if ILeVO reduced SCN or increased it 
 lm.SCN.em <- emmeans(lm.SCN2, ~Trt) # estimate lsmeans of ILeVO
 lm.SCN.results <- multcomp::cld(lm.SCN.em, 
                             alpha = 0.05, 
@@ -107,28 +123,8 @@ lm.SCN.results2
 #At least, each variety was only tested 1 year that we're aware of. Varieties were coded.
 
 
-#Get tukey results for yield and SDS too
-lm.yield2 <- emmeans(lm.yield, ~Trt) # estimate lsmeans of ILeVO within Variety
-lm.yield.results2 <- multcomp::cld(lm.yield2, 
-                            alpha = 0.05, 
-                            adjust = "tuk", 
-                            Letters = letters, 
-                            reversed = TRUE, 
-                            details = TRUE)
-lm.SDS.em <- emmeans(lm.SDS, ~Trt) # estimate lsmeans of ILeVO within Variety
-lm.SDS.results <- multcomp::cld(lm.SDS.em, 
-                            alpha = 0.05, 
-                            adjust = "tuk", 
-                            Letters = letters, 
-                            reversed = TRUE, 
-                            details = TRUE)
-lm.yield.results2
-lm.SDS.results
-#Overally, no significant effects of fluopyram (ILeVO) on yield or SDS in this study.
-
-
 #Check variety effects too
-lm.yield.var.em <- emmeans(lm.yield, ~Var) # estimate lsmeans of ILeVO within Variety
+lm.yield.var.em <- emmeans(lm.yield, ~Var) 
 lm.yield.var.results <- multcomp::cld(lm.yield.var.em, 
                             alpha = 0.05, 
                             adjust = "tuk", 
@@ -136,7 +132,7 @@ lm.yield.var.results <- multcomp::cld(lm.yield.var.em,
                             reversed = TRUE, 
                             details = TRUE)
 
-lm.SCN.var.em <- emmeans(lm.SCN2, ~Var) # estimate lsmeans of ILeVO within Variety
+lm.SCN.var.em <- emmeans(lm.SCN2, ~Var)
 lm.SCN.var.results <- multcomp::cld(lm.SCN.var.em, 
                             alpha = 0.05, 
                             adjust = "tuk", 
@@ -144,7 +140,7 @@ lm.SCN.var.results <- multcomp::cld(lm.SCN.var.em,
                             reversed = TRUE, 
                             details = TRUE)
 
-lm.SDS.var.em <- emmeans(lm.SDS, ~Var) # estimate lsmeans of ILeVO within Variety
+lm.SDS.var.em <- emmeans(lm.SDS, ~Var)
 lm.SDS.var.results <- multcomp::cld(lm.SDS.var.em, 
                             alpha = 0.05, 
                             adjust = "tuk", 
@@ -154,78 +150,145 @@ lm.SDS.var.results <- multcomp::cld(lm.SDS.var.em,
 lm.yield.var.results
 lm.SCN.var.results
 lm.SDS.var.results
-
+#Lots of variety effects. To be expected.
 ```
 
-```{r stats Eggs_Jvs2 vs PfPi_SCN}
-library(lme4)
-library(car)
-library(emmeans)
-master2 <- master[master$Trt!="Low ILeVO",]
-master2$Year <- as.factor(master2$Year)
-colnames(master2)
-#histogram(master2$PfPi_SCN)
-#histogram(log(master2$PfPi_SCN))
-#^suggests I should log transform PfPi_SCN to normalize distribution 
-master2$PfPi_SCN_log <- log(master2$PfPi_SCN)
-lm.EJ2  <- lm(Eggs_Jvs2 ~ Var * Trt, data = master2)
-lm.PfPi <- lm(PfPi_SCN_log ~ Var * Trt, data = master2)
-car::Anova(lm.EJ2)
-car::Anova(lm.PfPi)
-
-#Break out the data frame by year and see if ILeVO had a signifiant effect within year.
-master2.2014 <- master2[master2$Year=="2014",]
-master2.2015 <- master2[master2$Year=="2015",]
-master2.2016 <- master2[master2$Year=="2016",]
-
-lm4 <- lm(Eggs_Jvs2 ~ Var * Trt, data = master2.2014)
-lm5 <- lm(Eggs_Jvs2 ~ Var * Trt, data = master2.2015)
-lm6 <- lm(Eggs_Jvs2 ~ Var * Trt, data = master2.2016)
-anova(lm4) 
-anova(lm5) 
-anova(lm6) 
-lm7 <- lm(PfPi_SCN_log ~ Var * Trt, data = master2.2014)
-lm8 <- lm(PfPi_SCN_log ~ Var * Trt, data = master2.2015)
-lm9 <- lm(PfPi_SCN_log ~ Var * Trt, data = master2.2016)
-anova(lm7) 
-anova(lm8) 
-anova(lm9) 
-
-# Run a Tukey test to see if the sig difference means ILeVO sig reduced or sig increased SCN 
-lm.EJ2_tukey <- emmeans(lm.EJ2, ~Trt) # estimate lsmeans of ILeVO
-lm.EJ2_tukey.results <- multcomp::cld(lm.EJ2_tukey, 
+```{r}
+#Per reviewer request - do ANOVAs based on SCN resistance source across all years, and within years
+#Unfortunately, only 2014 had all 4 SCN resistance sources in the same year
+#This makes it hard to do ANOVAs within years, making the table a little sparce...
+#So, compile this into a supplemental table (Table S1)
+SCN.R.yield <- lm(Yield_kg_ha ~ SCN_Res, data = master2)
+SCN.R.yield.em <- emmeans(SCN.R.yield, ~SCN_Res) 
+SCN.R.yield.em.results <- multcomp::cld(SCN.R.yield.em, 
                             alpha = 0.05, 
                             adjust = "tuk", 
                             Letters = letters, 
                             reversed = TRUE, 
                             details = TRUE)
-lm.EJ2_tukey.results
-#Base = a with mean 5827.28
-#ILeVO= b with mean 4922.52
-#p value = 0.0421
-#Interpretation: ILeVO reduced eggs_jvs2
 
-lm.PfPi_tukey <- emmeans(lm.PfPi, ~Trt) # estimate lsmeans of ILeVO
-lm.PfPi_tukey.results <- multcomp::cld(lm.PfPi_tukey, 
+SCN.R.SCN2 <- lm(Eggs_Jvs2 ~ SCN_Res, data = master2)
+SCN.R.SCN2.em <- emmeans(SCN.R.SCN2, ~SCN_Res) 
+SCN.R.SCN2.em.results <- multcomp::cld(SCN.R.SCN2.em, 
                             alpha = 0.05, 
                             adjust = "tuk", 
                             Letters = letters, 
                             reversed = TRUE, 
                             details = TRUE)
-lm.PfPi_tukey.results
-#ILeVO= a with mean 0.434
-#Base = a with mean 0.515
-#p value = 0.5264
-#Interpretation: ILeVO had no effect on PfPi
+SCN.R.Rf <- lm(PfPi_SCN_log ~ SCN_Res, data = master2)
+SCN.R.Rf.em <- emmeans(SCN.R.Rf, ~SCN_Res) 
+SCN.R.Rf.em.results <- multcomp::cld(SCN.R.Rf.em, 
+                            alpha = 0.05, 
+                            adjust = "tuk", 
+                            Letters = letters, 
+                            reversed = TRUE, 
+                            details = TRUE)
+SCN.R.SDS <- lm(DIX_26Aug ~ SCN_Res, data = master2)
+SCN.R.SDS.em <- emmeans(SCN.R.SDS, ~SCN_Res) 
+SCN.R.SDS.em.results <- multcomp::cld(SCN.R.SDS.em, 
+                            alpha = 0.05, 
+                            adjust = "tuk", 
+                            Letters = letters, 
+                            reversed = TRUE, 
+                            details = TRUE)
+
+SCN.R.yield.em.results
+SCN.R.SCN2.em.results
+SCN.R.Rf.em.results
+SCN.R.SDS.em.results
+
+#Break out by year
+SCN.R.yield.14 <- lm(Yield_kg_ha ~ SCN_Res, data = master2.2014)
+SCN.R.yield.15 <- lm(Yield_kg_ha ~ SCN_Res, data = master2.2015)
+SCN.R.yield.16 <- lm(Yield_kg_ha ~ SCN_Res, data = master2.2016)
+SCN.R.yield.em.14 <- emmeans(SCN.R.yield.14, ~SCN_Res) 
+SCN.R.yield.em.15 <- emmeans(SCN.R.yield.15, ~SCN_Res) 
+SCN.R.yield.em.results.14 <- multcomp::cld(SCN.R.yield.em.14, 
+                            alpha = 0.05, 
+                            adjust = "tuk", 
+                            Letters = letters, 
+                            reversed = TRUE, 
+                            details = TRUE)
+SCN.R.yield.em.results.15 <- multcomp::cld(SCN.R.yield.em.15, 
+                            alpha = 0.05, 
+                            adjust = "tuk", 
+                            Letters = letters, 
+                            reversed = TRUE, 
+                            details = TRUE)
+SCN.R.yield.em.results.14
+SCN.R.yield.em.results.15
+
+SCN.R.SCN2.14 <- lm(Eggs_Jvs2 ~ SCN_Res, data = master2.2014)
+SCN.R.SCN2.15 <- lm(Eggs_Jvs2 ~ SCN_Res, data = master2.2015)
+SCN.R.SCN2.16 <- lm(Eggs_Jvs2 ~ SCN_Res, data = master2.2016)
+SCN.R.SCN2.em.14 <- emmeans(SCN.R.SCN2.14, ~SCN_Res) 
+SCN.R.SCN2.em.15 <- emmeans(SCN.R.SCN2.15, ~SCN_Res) 
+SCN.R.SCN2.em.results.14 <- multcomp::cld(SCN.R.SCN2.em.14, 
+                            alpha = 0.05, 
+                            adjust = "tuk", 
+                            Letters = letters, 
+                            reversed = TRUE, 
+                            details = TRUE)
+SCN.R.SCN2.em.results.15 <- multcomp::cld(SCN.R.SCN2.em.15, 
+                            alpha = 0.05, 
+                            adjust = "tuk", 
+                            Letters = letters, 
+                            reversed = TRUE, 
+                            details = TRUE)
+SCN.R.SCN2.em.results.14
+SCN.R.SCN2.em.results.15
+
+SCN.R.Rf.14 <- lm(PfPi_SCN_log ~ SCN_Res, data = master2.2014)
+SCN.R.Rf.15 <- lm(PfPi_SCN_log ~ SCN_Res, data = master2.2015)
+SCN.R.Rf.16 <- lm(PfPi_SCN_log ~ SCN_Res, data = master2.2016)
+SCN.R.Rf.em.14 <- emmeans(SCN.R.Rf.14, ~SCN_Res) 
+SCN.R.Rf.em.15 <- emmeans(SCN.R.Rf.15, ~SCN_Res) 
+SCN.R.Rf.em.results.14 <- multcomp::cld(SCN.R.Rf.em.14, 
+                            alpha = 0.05, 
+                            adjust = "tuk", 
+                            Letters = letters, 
+                            reversed = TRUE, 
+                            details = TRUE)
+SCN.R.Rf.em.results.15 <- multcomp::cld(SCN.R.Rf.em.15, 
+                            alpha = 0.05, 
+                            adjust = "tuk", 
+                            Letters = letters, 
+                            reversed = TRUE, 
+                            details = TRUE)
+SCN.R.Rf.em.results.14
+SCN.R.Rf.em.results.15
+
+SCN.R.SDS.14 <- lm(DIX_26Aug ~ SCN_Res, data = master2.2014)
+SCN.R.SDS.15 <- lm(DIX_26Aug ~ SCN_Res, data = master2.2015)
+SCN.R.SDS.16 <- lm(DIX_26Aug ~ SCN_Res, data = master2.2016)
+SCN.R.SDS.em.14 <- emmeans(SCN.R.SDS.14, ~SCN_Res) 
+SCN.R.SDS.em.15 <- emmeans(SCN.R.SDS.15, ~SCN_Res) 
+SCN.R.SDS.em.results.14 <- multcomp::cld(SCN.R.SDS.em.14, 
+                            alpha = 0.05, 
+                            adjust = "tuk", 
+                            Letters = letters, 
+                            reversed = TRUE, 
+                            details = TRUE)
+SCN.R.SDS.em.results.15 <- multcomp::cld(SCN.R.SDS.em.15, 
+                            alpha = 0.05, 
+                            adjust = "tuk", 
+                            Letters = letters, 
+                            reversed = TRUE, 
+                            details = TRUE)
+SCN.R.SDS.em.results.14
+SCN.R.SDS.em.results.15
+
 ```
 
 Plot Eggs_Jvs2 for each variety, treated and non-treated
 ```{r Bar Charts variety ~ treatment}
 library(ggplot2)
 library(ggpubr)
-#First example is post-season eggs+juveniles
-p1 <- ggplot(data = master2.2016, aes(x = Trt,
-                                 y = Eggs_Jvs2/1000,
+#Compile these into Figure 1
+plot.SCN <- function(dataset, variable){
+  z <- which(colnames(dataset)==as.character(variable))
+  p1 <- ggplot(data = dataset, aes(x = Trt,
+                                 y = (dataset[,z]/1000),
                                  fill = Trt)) +
     stat_summary(fun.y = mean, position="identity", geom = "bar") +
     stat_summary(fun.data = mean_se, 
@@ -236,7 +299,7 @@ p1 <- ggplot(data = master2.2016, aes(x = Trt,
                        label.y.npc = 1) +
     facet_grid(~SCN_Res + SDS_Res + Var + Year, switch="x") +
   ylim(0,23.3)+
-    ylab("Post-harvest SCN eggs + J2s") +
+    ylab(as.character(variable)) +
     ggtitle("Variety Response to ILeVO") +
     theme_bw() +
     theme(legend.title=element_text(size=12), legend.text=element_text(size=20),
@@ -248,34 +311,43 @@ p1 <- ggplot(data = master2.2016, aes(x = Trt,
           panel.background=element_blank(), panel.grid.minor=element_blank(),
           panel.grid.major=element_blank()) +
     scale_fill_grey()
+  p1
+}
+#For the sake of plotting nematodes, the function divides by 1000
+plot.SCN(master2.2014, "Eggs_Jvs")
+plot.SCN(master2.2015, "Eggs_Jvs")
+plot.SCN(master2.2016, "Eggs_Jvs")
 
-p1
+plot.SCN(master2.2014, "Eggs_Jvs2")
+plot.SCN(master2.2015, "Eggs_Jvs2")
+plot.SCN(master2.2016, "Eggs_Jvs2")
+#Don't want Rf divided by 1000, so multiply by 1000 prior to running the code
+master2.2014$PfPi_SCN <- master2.2014$PfPi_SCN * 1000
+master2.2015$PfPi_SCN <- master2.2015$PfPi_SCN * 1000
+master2.2016$PfPi_SCN <- master2.2016$PfPi_SCN * 1000
+range(master2$PfPi_SCN)
+plot.SCN(master2.2014, "PfPi_SCN") + geom_abline(slope=0, intercept=1,  col = "red",lty=2)
+plot.SCN(master2.2015, "PfPi_SCN") + geom_abline(slope=0, intercept=1,  col = "red",lty=2)
+plot.SCN(master2.2016, "PfPi_SCN") + geom_abline(slope=0, intercept=1,  col = "red",lty=2)
 
 
 
-
-#Note: PfPi_SCN is final eggs_juvs / initial eggs_jvs
-#Note: if PfPi is > 1, nematodes are doing well. The higher the PfPi, the more SCN reproduction is occuring (more eggs+juvs at end of season)
-#master2.2 <- master2[master2$Var != "23",]
-#master2.2 <- master2.2[master2.2$Var != "24",]
-#master2.2 <- master2.2[master2.2$Var != "25",]
-master2.2.2 <- master2[master2$PfPi_SCN<54,]
-max(master2.2.2$PfPi_SCN)
-master2.2.2.14 <- master2.2.2[master2.2.2$Year=="2014",]
-master2.2.2.15 <- master2.2.2[master2.2.2$Year=="2015",]
-master2.2.2.16 <- master2.2.2[master2.2.2$Year=="2016",]
-
-p2.2 <- ggplot(data = master2.2.2.16, aes(x = Trt, 
-                                       y = PfPi_SCN, 
-                                       fill = Trt)) +
+#Compile these into Figure 2
+plot.others <- function(dataset, variable, user.ylim){
+  z <- which(colnames(dataset)==as.character(variable))
+  p1 <- ggplot(data = dataset, aes(x = Trt,
+                                 y = dataset[,z],
+                                 fill = Trt)) +
     stat_summary(fun.y = mean, position="identity", geom = "bar") +
-    stat_summary(fun.data = mean_se, position = "identity", geom = "errorbar",
-               width = 0.5) +
+    stat_summary(fun.data = mean_se, 
+                 position = "identity", 
+                 geom = "errorbar",
+                 width = 0.5) +
     stat_compare_means(size = 5, label = "p.signif", method = "t.test",
                        label.y.npc = 1) +
     facet_grid(~SCN_Res + SDS_Res + Var + Year, switch="x") +
-    ylim(0,27.5)+
-    ylab("Pf/Pi") +
+  ylim(0,user.ylim)+
+    ylab(as.character(variable)) +
     ggtitle("Variety Response to ILeVO") +
     theme_bw() +
     theme(legend.title=element_text(size=12), legend.text=element_text(size=20),
@@ -287,195 +359,17 @@ p2.2 <- ggplot(data = master2.2.2.16, aes(x = Trt,
           panel.background=element_blank(), panel.grid.minor=element_blank(),
           panel.grid.major=element_blank()) +
     scale_fill_grey()
-
-p2.2 + geom_abline(slope=0, intercept=1,  col = "red",lty=2)
-
-p3 <- ggplot(data = master2.2016, aes(x = Trt, 
-                                       y = Yield, 
-                                       fill = Trt)) +
-    stat_summary(fun.y = mean, position="identity", geom = "bar") +
-    stat_summary(fun.data = mean_se, position = "identity", geom = "errorbar",
-               width = 0.5) +
-    stat_compare_means(size = 5, label = "p.signif", method = "t.test",
-                       label.y.npc = 0.975) +
-    facet_grid(~SCN_Res + SDS_Res + Var + Year, switch="x") +
-  ylim(0,87)+
-    ylab("Yield") +
-    ggtitle("Variety Response to ILeVO") +
-    theme_bw() +
-    theme(legend.title=element_text(size=12), legend.text=element_text(size=20),
-          legend.position="bottom", strip.text.x = element_text(size=8, face = "bold"),
-          axis.text.x=element_blank(), axis.text.y=element_text(size=20),
-          axis.title.x=element_blank(), 
-          axis.title.y=element_text(size=20, face="bold"), 
-          axis.ticks.x=element_blank(),
-          panel.background=element_blank(), panel.grid.minor=element_blank(),
-          panel.grid.major=element_blank()) +
-    scale_fill_grey()
-
-p3
-
-```
-
-Plot ordered <variable> response to ILeVO for each variety
-```{r Differences function}
-#install.packages("reshape")
-#install.packages("reshape2")
-#Pi fecundity (initial fecundity) = Eggs/Cysts
-#Pf fecundity (final fecundity) = Eggs2/Cysts2
-#PfPi_SCN = final Eggs_Jvs2/initial Eggs_Jvs
-#PfPi_fecundity = Pf fecundity/Pi fecundity
-#PfPi_Spiral = final Spiral2/initial Spiral
-yield.plot.diff.SCN <- function(variable){
-  z <- which(colnames(master)==as.character(variable))
-  diff.df <- cbind.data.frame(as.factor(master$SCN_Res), master$Var, master$Trt, 
-                                as.numeric(as.character(master[,z])))
-  colnames(diff.df) <- c("SCN_Res", "Variety","Treatment",as.character(variable))
-  library(reshape)
-  library(reshape2)
-  diff.melt <- melt.data.frame(diff.df, id = c("SCN_Res", "Variety", "Treatment"))
-  diff.cast <- dcast(diff.melt, Variety + SCN_Res + Treatment ~ variable, mean)
-  diff.SD <- dcast(diff.melt, Variety + Treatment ~ variable, sd)
-  diff.cast$diff.SD <- (diff.SD[,3] / sqrt(5))
-  diff.cast <- diff.cast[diff.cast$Treatment != "Low ILeVO",]
-  row.names(diff.cast) <- 1:nrow(diff.cast)
-  response.df <- NULL
-  for (i in seq(2,50,2)){
-    SCN_Res <- diff.cast$SCN_Res[i]
-    variety <- diff.cast$Variety[i]
-    illevo <- diff.cast[,4][i]
-    base <- diff.cast[,4][i-1]
-    SD <- mean(diff.cast$diff.SD[i], diff.cast$diff.SD[i-1])
-    response <- (illevo - base)
-    response.df = rbind(response.df, data.frame(SCN_Res, variety, response, SD))
-  }
-  title <- paste(as.character(variable), "response")
-  colnames(response.df)[3] <- title
-  response.df$ymin <- (response.df[,3] - response.df$SD)
-  response.df$ymax <- (response.df[,3] + response.df$SD)
-  ordered.response.df <- response.df[order(response.df[,3]),]
-  ordered.response.df$plot.order <- c(1:25)
-  library(ggplot2)
-  p <- ggplot(data = ordered.response.df, aes(x = plot.order, y = ordered.response.df[,3], 
-                                              fill = SCN_Res))+
-      geom_bar(stat = "identity", width = 0.8, colour = "black") +
-    #scale_fill_manual("legend", values = c("2014" = "orange", "2015" = "dark green", "2016" = "dark blue")) +
-    geom_errorbar(aes(ymin = ordered.response.df$ymin, 
-                       ymax = ordered.response.df$ymax, width=.1)) +
-    ylab(title) +
-         theme(strip.background = element_blank(), 
-               panel.background = element_blank(), 
-               legend.title=element_blank(),
-                legend.text=element_text(size=20),
-                legend.position="bottom",
-                axis.text.x=element_blank(), strip.text.x = element_text(size=18),
-                axis.title.x=element_blank(), axis.ticks.x=element_blank(),
-                axis.title.y=element_text(size=20, face="bold"),
-                axis.text.y=element_text(size=20))
-  p
+  p1
 }
-plot.diff <- function(variable, y1, y2, y3, y4){
-  z <- which(colnames(master)==as.character(variable))
-  diff.df <- cbind.data.frame(as.factor(master$SCN_Res),
-                              as.factor(master$SDS_Res),
-                              master$Var, 
-                              master$Trt,
-                              master$Year,
-                              as.numeric(as.character(master[,z])))
-  colnames(diff.df) <- c("SCN_Res",
-                         "SDS_Res",
-                         "Variety",
-                         "Treatment",
-                         "Year",
-                         as.character(variable))
-  library(reshape)
-  library(reshape2)
-  diff.melt <- melt.data.frame(diff.df, id = c("SCN_Res", 
-                                               "SDS_Res", 
-                                               "Variety", 
-                                               "Treatment",
-                                               "Year"))
-  diff.cast <- dcast(diff.melt, 
-                     Variety + SCN_Res + SDS_Res + Treatment + Year ~ variable,
-                     mean)
-  diff.SD <- dcast(diff.melt, 
-                   Variety + Treatment ~ variable, 
-                   sd)
-  diff.cast$diff.SD <- (diff.SD[,3] / sqrt(5))
-  diff.cast <- diff.cast[diff.cast$Treatment != "Low ILeVO",]
-  row.names(diff.cast) <- 1:nrow(diff.cast)
-  response.df <- NULL
-  for (i in seq(2,50,2)){
-    SCN_Res <- diff.cast$SCN_Res[i]
-    SDS_Res <- diff.cast$SDS_Res[i]
-    variety <- diff.cast$Variety[i]
-    year <- diff.cast$Year[i]
-    illevo <- diff.cast[,6][i]
-    base <- diff.cast[,6][i-1]
-    SD <- mean(diff.cast$diff.SD[i], diff.cast$diff.SD[i-1])
-    response <- (illevo - base)
-    response.df = rbind(response.df, 
-                        data.frame(SCN_Res, 
-                                   SDS_Res, 
-                                   variety,
-                                   year,
-                                   response, 
-                                   SD))
-  }
-  title <- paste(as.character(variable), "response")
-  colnames(response.df)[5] <- title
-  response.df$ymin <- (response.df[,4] - response.df$SD)
-  response.df$ymax <- (response.df[,4] + response.df$SD)
-  response.df <- response.df[order(response.df[,5]),]
-  response.df$plot.order <- c(1:25)
-  library(ggplot2)
-  p <- ggplot(data = response.df, aes(x = plot.order, 
-                                      y = response.df[,5])) +
-    geom_bar(stat = "identity", width = 0.8, colour = "black") +
-    geom_errorbar(aes(ymin = response.df[,5] - SD, 
-                      ymax = response.df[,5] + SD, width=.25)) +
-    geom_text(aes(x = plot.order,
-                  y = y1,
-                  label=variety),
-              size = 3,
-              colour = "black") +
-    geom_text(aes(x = plot.order,
-                  y = y2,
-                  label=year),
-              size = 3,
-              colour = "black") +
-    geom_text(aes(x = plot.order,
-                  y = y3,
-                  label=SCN_Res),
-              size = 3,
-              colour = "black") +
-    geom_text(aes(x = plot.order,
-                  y = y4,
-                  label=SDS_Res),
-              size = 3,
-              colour = "black") +
-    ylab(paste(title, "\n(ILeVO - Base)")) +
-    guides(fill=guide_legend(title="SCN Resistance Source:")) +
-    theme(strip.background = element_blank(),
-          legend.title=element_text(size=20),
-          legend.text=element_text(size=20),
-          legend.position="bottom",
-          axis.text.x=element_blank(), 
-          strip.text.x = element_text(size=18),
-          axis.title.x=element_blank(),
-          axis.ticks.x=element_blank(),
-          axis.title.y=element_text(size=20, face="bold"),
-          axis.text.y=element_text(size=20)) +
-  scale_fill_grey()
-  p
-}
+range(master2$DIX_26Aug)
+range(master2$Yield_kg_ha)
+plot.others(master2.2014, "DIX_26Aug", 100)
+plot.others(master2.2015, "DIX_26Aug", 100)
+plot.others(master2.2016, "DIX_26Aug", 100)
 
-plot.diff("Eggs_Jvs2", -4750, -5000, -5250, -5500)
-#Change "y" in the geom_text snippets above for the rest of these
-plot.diff("Cysts2", -50, -60, -70, -80)
-plot.diff("Pi_fecundity", -60, -70, -80, -90)
-plot.diff("Pf_fecundity", -60, -70, -80, -90)
-plot.diff("PfPi_SCN", -15, -18, -21, -24)
+plot.others(master2.2014, "Yield_kg_ha", 6000)
+plot.others(master2.2015, "Yield_kg_ha", 6000)
+plot.others(master2.2016, "Yield_kg_ha", 6000)
 ```
 
 Combined SCN and SDS responses
@@ -629,8 +523,172 @@ p
 }
 
 colnames(master)
-plot.response('Eggs_Jvs2', 'DIX_26Aug', 'Yield')
+plot.response('Eggs_Jvs2', 'DIX_26Aug', 'Yield_kg_ha')
 #plot.response('Yield', 'Eggs_Jvs2')
 #plot.response('Yield', 'DIX_26Aug')
 
+```
+
+Just for fun...
+Plot *ordered* <variable> response to ILeVO for each variety
+```{r Differences function}
+#install.packages("reshape")
+#install.packages("reshape2")
+#Pi fecundity (initial fecundity) = Eggs/Cysts
+#Pf fecundity (final fecundity) = Eggs2/Cysts2
+#PfPi_SCN = final Eggs_Jvs2/initial Eggs_Jvs
+#PfPi_fecundity = Pf fecundity/Pi fecundity
+#PfPi_Spiral = final Spiral2/initial Spiral
+yield.plot.diff.SCN <- function(variable){
+  z <- which(colnames(master)==as.character(variable))
+  diff.df <- cbind.data.frame(as.factor(master$SCN_Res), master$Var, master$Trt, 
+                                as.numeric(as.character(master[,z])))
+  colnames(diff.df) <- c("SCN_Res", "Variety","Treatment",as.character(variable))
+  library(reshape)
+  library(reshape2)
+  diff.melt <- melt.data.frame(diff.df, id = c("SCN_Res", "Variety", "Treatment"))
+  diff.cast <- dcast(diff.melt, Variety + SCN_Res + Treatment ~ variable, mean)
+  diff.SD <- dcast(diff.melt, Variety + Treatment ~ variable, sd)
+  diff.cast$diff.SD <- (diff.SD[,3] / sqrt(5))
+  diff.cast <- diff.cast[diff.cast$Treatment != "Low ILeVO",]
+  row.names(diff.cast) <- 1:nrow(diff.cast)
+  response.df <- NULL
+  for (i in seq(2,50,2)){
+    SCN_Res <- diff.cast$SCN_Res[i]
+    variety <- diff.cast$Variety[i]
+    illevo <- diff.cast[,4][i]
+    base <- diff.cast[,4][i-1]
+    SD <- mean(diff.cast$diff.SD[i], diff.cast$diff.SD[i-1])
+    response <- (illevo - base)
+    response.df = rbind(response.df, data.frame(SCN_Res, variety, response, SD))
+  }
+  title <- paste(as.character(variable), "response")
+  colnames(response.df)[3] <- title
+  response.df$ymin <- (response.df[,3] - response.df$SD)
+  response.df$ymax <- (response.df[,3] + response.df$SD)
+  ordered.response.df <- response.df[order(response.df[,3]),]
+  ordered.response.df$plot.order <- c(1:25)
+  library(ggplot2)
+  p <- ggplot(data = ordered.response.df, aes(x = plot.order, y = ordered.response.df[,3], 
+                                              fill = SCN_Res))+
+      geom_bar(stat = "identity", width = 0.8, colour = "black") +
+    #scale_fill_manual("legend", values = c("2014" = "orange", "2015" = "dark green", "2016" = "dark blue")) +
+    geom_errorbar(aes(ymin = ordered.response.df$ymin, 
+                       ymax = ordered.response.df$ymax, width=.1)) +
+    ylab(title) +
+         theme(strip.background = element_blank(), 
+               panel.background = element_blank(), 
+               legend.title=element_blank(),
+                legend.text=element_text(size=20),
+                legend.position="bottom",
+                axis.text.x=element_blank(), strip.text.x = element_text(size=18),
+                axis.title.x=element_blank(), axis.ticks.x=element_blank(),
+                axis.title.y=element_text(size=20, face="bold"),
+                axis.text.y=element_text(size=20))
+  p
+}
+yield.plot.diff.SCN("Yield_kg_ha")
+
+plot.diff <- function(variable, y1, y2, y3, y4){
+  z <- which(colnames(master)==as.character(variable))
+  diff.df <- cbind.data.frame(as.factor(master$SCN_Res),
+                              as.factor(master$SDS_Res),
+                              master$Var, 
+                              master$Trt,
+                              master$Year,
+                              as.numeric(as.character(master[,z])))
+  colnames(diff.df) <- c("SCN_Res",
+                         "SDS_Res",
+                         "Variety",
+                         "Treatment",
+                         "Year",
+                         as.character(variable))
+  library(reshape)
+  library(reshape2)
+  diff.melt <- melt.data.frame(diff.df, id = c("SCN_Res", 
+                                               "SDS_Res", 
+                                               "Variety", 
+                                               "Treatment",
+                                               "Year"))
+  diff.cast <- dcast(diff.melt, 
+                     Variety + SCN_Res + SDS_Res + Treatment + Year ~ variable,
+                     mean)
+  diff.SD <- dcast(diff.melt, 
+                   Variety + Treatment ~ variable, 
+                   sd)
+  diff.cast$diff.SD <- (diff.SD[,3] / sqrt(5))
+  diff.cast <- diff.cast[diff.cast$Treatment != "Low ILeVO",]
+  row.names(diff.cast) <- 1:nrow(diff.cast)
+  response.df <- NULL
+  for (i in seq(2,50,2)){
+    SCN_Res <- diff.cast$SCN_Res[i]
+    SDS_Res <- diff.cast$SDS_Res[i]
+    variety <- diff.cast$Variety[i]
+    year <- diff.cast$Year[i]
+    illevo <- diff.cast[,6][i]
+    base <- diff.cast[,6][i-1]
+    SD <- mean(diff.cast$diff.SD[i], diff.cast$diff.SD[i-1])
+    response <- (illevo - base)
+    response.df = rbind(response.df, 
+                        data.frame(SCN_Res, 
+                                   SDS_Res, 
+                                   variety,
+                                   year,
+                                   response, 
+                                   SD))
+  }
+  title <- paste(as.character(variable), "response")
+  colnames(response.df)[5] <- title
+  response.df$ymin <- (response.df[,4] - response.df$SD)
+  response.df$ymax <- (response.df[,4] + response.df$SD)
+  response.df <- response.df[order(response.df[,5]),]
+  response.df$plot.order <- c(1:25)
+  library(ggplot2)
+  p <- ggplot(data = response.df, aes(x = plot.order, 
+                                      y = response.df[,5])) +
+    geom_bar(stat = "identity", width = 0.8, colour = "black") +
+    geom_errorbar(aes(ymin = response.df[,5] - SD, 
+                      ymax = response.df[,5] + SD, width=.25)) +
+    geom_text(aes(x = plot.order,
+                  y = y1,
+                  label=variety),
+              size = 3,
+              colour = "black") +
+    geom_text(aes(x = plot.order,
+                  y = y2,
+                  label=year),
+              size = 3,
+              colour = "black") +
+    geom_text(aes(x = plot.order,
+                  y = y3,
+                  label=SCN_Res),
+              size = 3,
+              colour = "black") +
+    geom_text(aes(x = plot.order,
+                  y = y4,
+                  label=SDS_Res),
+              size = 3,
+              colour = "black") +
+    ylab(paste(title, "\n(ILeVO - Base)")) +
+    guides(fill=guide_legend(title="SCN Resistance Source:")) +
+    theme(strip.background = element_blank(),
+          legend.title=element_text(size=20),
+          legend.text=element_text(size=20),
+          legend.position="bottom",
+          axis.text.x=element_blank(), 
+          strip.text.x = element_text(size=18),
+          axis.title.x=element_blank(),
+          axis.ticks.x=element_blank(),
+          axis.title.y=element_text(size=20, face="bold"),
+          axis.text.y=element_text(size=20)) +
+  scale_fill_grey()
+  p
+}
+
+plot.diff("Eggs_Jvs2", -4750, -5000, -5250, -5500)
+#Change "y" in the geom_text snippets above for the rest of these
+plot.diff("Cysts2", -50, -60, -70, -80)
+plot.diff("Pi_fecundity", -60, -70, -80, -90)
+plot.diff("Pf_fecundity", -60, -70, -80, -90)
+plot.diff("PfPi_SCN", -15, -18, -21, -24)
 ```
