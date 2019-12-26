@@ -367,9 +367,12 @@ plot.others(master2.2014, "DIX_26Aug", 100)
 plot.others(master2.2015, "DIX_26Aug", 100)
 plot.others(master2.2016, "DIX_26Aug", 100)
 
-plot.others(master2.2014, "Yield_kg_ha", 6000)
-plot.others(master2.2015, "Yield_kg_ha", 6000)
-plot.others(master2.2016, "Yield_kg_ha", 6000)
+master2.2014$Yield_kg_ha <- master2.2014$Yield_kg_ha / 1000
+master2.2015$Yield_kg_ha <- master2.2015$Yield_kg_ha / 1000
+master2.2016$Yield_kg_ha <- master2.2016$Yield_kg_ha / 1000
+plot.others(master2.2014, "Yield_kg_ha", 6)
+plot.others(master2.2015, "Yield_kg_ha", 6)
+plot.others(master2.2016, "Yield_kg_ha", 6)
 ```
 
 Combined SCN and SDS responses
